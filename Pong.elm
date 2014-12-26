@@ -6,6 +6,7 @@ import Graphics.Element (..)
 import Keyboard
 import Signal
 import Text
+import Char
 import Time (..)
 import Window
 
@@ -24,8 +25,9 @@ delta =
 input : Signal Input
 input =
   Signal.sampleOn delta <|
-    Signal.map4 Input
+    Signal.map5 Input
       Keyboard.space
+      (Keyboard.isDown (Char.toCode 'p'))
       (Signal.map .y Keyboard.wasd)
       (Signal.map .y Keyboard.arrows)
       delta
@@ -63,6 +65,7 @@ defaultGame =
 
 type alias Input =
     { space : Bool
+    , pause : Bool
     , dir1 : Int
     , dir2 : Int
     , delta : Time
@@ -72,12 +75,13 @@ type alias Input =
 -- UPDATE
 
 update : Input -> Game -> Game
-update {space, dir1, dir2, delta} ({state, ball, player1, player2} as game) =
+update {space, pause, dir1, dir2, delta} ({state, state, ball, player1, player2} as game) =
   let score1 = if ball.x >  halfWidth then 1 else 0
       score2 = if ball.x < -halfWidth then 1 else 0
 
       newState =
         if  | space            -> Play
+            | pause            -> Pause
             | score1 /= score2 -> Pause
             | otherwise        -> state
 
@@ -166,7 +170,7 @@ verticalLine height color =
 pongGreen = rgb 60 100 60
 textGreen = rgb 160 200 160
 txt f = Text.fromString >> Text.color textGreen >> Text.monospace >> f >> Text.leftAligned
-msg = "SPACE to start, WS and &uarr;&darr; to move"
+msg = "SPACE to start, P to pause, WS and &uarr;&darr; to move"
 make obj shape =
     shape
       |> filled white
