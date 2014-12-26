@@ -72,7 +72,7 @@ type alias Input =
 -- UPDATE
 
 update : Input -> Game -> Game
-update {space,dir1,dir2,delta} ({state,ball,player1,player2} as game) =
+update {space, dir1, dir2, delta} ({state, ball, player1, player2} as game) =
   let score1 = if ball.x >  halfWidth then 1 else 0
       score2 = if ball.x < -halfWidth then 1 else 0
 
@@ -96,7 +96,7 @@ update {space,dir1,dir2,delta} ({state,ball,player1,player2} as game) =
 
 
 updateBall : Time -> Ball -> Player -> Player -> Ball
-updateBall t ({x,y,vx,vy} as ball) p1 p2 =
+updateBall t ({x, y, vx, vy} as ball) p1 p2 =
   if not (ball.x |> near 0 halfWidth)
     then { ball | x <- 0, y <- 0 }
     else physicsUpdate t
@@ -147,6 +147,7 @@ view (w,h) {state,ball,player1,player2} =
       collage gameWidth gameHeight
         [ rect gameWidth gameHeight
             |> filled pongGreen
+        , verticalLine gameHeight red
         , oval 15 15
             |> make ball
         , rect 10 40
@@ -158,6 +159,9 @@ view (w,h) {state,ball,player1,player2} =
         , toForm (if state == Play then spacer 1 1 else txt identity msg)
             |> move (0, 40 - gameHeight/2)
         ]
+
+verticalLine height color =
+    traced (dashed color) (path [(0, height), (0, -height)])
 
 pongGreen = rgb 60 100 60
 textGreen = rgb 160 200 160
