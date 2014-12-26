@@ -7,7 +7,7 @@ Original implementation: http://elm-lang.org/blog/Pong.elm
 
 Features to build:
 - [X] Mid field line
-- [ ] Add the ability to pause the game during game play.
+- [X] Add the ability to pause the game during game play.
 
 - [ ] Add the ability to reset the game (besides refreshing the page!)
 
