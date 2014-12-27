@@ -152,7 +152,6 @@ physicsUpdate t ({x, y, vx, vy} as obj) =
       y <- y + vy * t
   }
 
-
 near k c n =
     n >= k-c && n <= k+c
 
@@ -187,9 +186,14 @@ view (w, h) {state, ball, player1, player2} =
             |> make player2
         , toForm scores
             |> move (0, gameHeight/2 - 40)
-        , toForm (if state == Play then spacer 1 1 else txt identity msg)
+        , toForm (statusMessage state)
             |> move (0, 40 - gameHeight/2)
         ]
+
+statusMessage state =
+    case state of
+        Play    -> txt identity ""
+        Pause   -> txt identity pauseMessage
 
 verticalLine height =
      path [(0, height), (0, -height)]
@@ -197,7 +201,7 @@ verticalLine height =
 pongGreen = rgb 60 100 60
 textGreen = rgb 160 200 160
 txt f = Text.fromString >> Text.color textGreen >> Text.monospace >> f >> Text.leftAligned
-msg = "SPACE to start, P to pause, R to reset, WS and &uarr;&darr; to move"
+pauseMessage = "SPACE to start, P to pause, R to reset, WS and &uarr;&darr; to move"
 
 make obj shape =
     shape
