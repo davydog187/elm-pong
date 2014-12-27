@@ -5,6 +5,7 @@ import Graphics.Collage (..)
 import Graphics.Element (..)
 import Keyboard
 import Signal
+import Signal (..)
 import Text
 import Char
 import Time (..)
@@ -12,8 +13,7 @@ import Window
 
 -- SIGNALS
 
-main =
-  Signal.map2 view Window.dimensions gameState
+main = view <~ Window.dimensions ~ gameState
 
 gameState : Signal Game
 gameState =
@@ -22,60 +22,81 @@ gameState =
 delta =
   Signal.map inSeconds (fps 35)
 
+keyPressed key =
+    Char.toCode key |> Keyboard.isDown
+
+
 input : Signal Input
 input =
   Signal.sampleOn delta <|
-    Signal.map5 Input
-      Keyboard.space
-      (Keyboard.isDown (Char.toCode 'p'))
-      (Signal.map .y Keyboard.wasd)
-      (Signal.map .y Keyboard.arrows)
-      delta
-
+    Input <~ Keyboard.space
+      ~ (keyPressed 'r')
+      ~ (keyPressed 'p')
+      ~ (Signal.map .y Keyboard.wasd)
+      ~ (Signal.map .y Keyboard.arrows)
+      ~ delta
 
 -- MODEL
 
-(gameWidth,gameHeight) = (600,400)
-(halfWidth,halfHeight) = (300,200)
+(gameWidth, gameHeight) = (600, 400)
+(halfWidth, halfHeight) = (300, 200)
 
 type State = Play | Pause
 
-type alias Ball =
-  { x:Float, y:Float, vx:Float, vy:Float }
+type alias Ball = {
+    x: Float,
+    y: Float,
+    vx: Float,
+    vy: Float
+}
 
-type alias Player =
-  { x:Float, y:Float, vx:Float, vy:Float, score:Int }
+type alias Player = {
+    x: Float,
+    y: Float,
+    vx: Float,
+    vy: Float,
+    score: Int
+}
 
-type alias Game =
-  { state:State, ball:Ball, player1:Player, player2:Player }
+type alias Game = {
+    state: State,
+    ball: Ball,
+    player1: Player,
+    player2: Player
+}
 
 
 player : Float -> Player
-player x =
-  { x = x, y = 0, vx = 0, vy = 0, score = 0 }
+player initialX =
+  { x = initialX
+  , y = 0
+  , vx = 0
+  , vy = 0
+  , score = 0
+  }
 
 defaultGame : Game
 defaultGame =
   { state   = Pause
-  , ball    = { x=0, y=0, vx=200, vy=200 }
-  , player1 = player (20-halfWidth) 
+  , ball    = { x = 0, y = 0, vx = 200, vy = 200 }
+  , player1 = player (20 - halfWidth)
   , player2 = player (halfWidth-20)
   }
 
 
-type alias Input =
-    { space : Bool
-    , pause : Bool
-    , dir1 : Int
-    , dir2 : Int
-    , delta : Time
-    }
-
+type alias Input = {
+    space : Bool,
+    reset : Bool,
+    pause : Bool,
+    dir1 : Int,
+    dir2 : Int,
+    delta : Time
+}
 
 -- UPDATE
 
 update : Input -> Game -> Game
-update {space, pause, dir1, dir2, delta} ({state, state, ball, player1, player2} as game) =
+update {space, reset, pause, dir1, dir2, delta} ({state, ball, player1, player2} as game) =
   let score1 = if ball.x >  halfWidth then 1 else 0
       score2 = if ball.x < -halfWidth then 1 else 0
 
@@ -91,13 +112,17 @@ update {space, pause, dir1, dir2, delta} ({state, state, ball, player1, player2}
             else updateBall delta ball player1 player2
 
   in
-      { game |
+      if | reset -> defaultGame
+         | otherwise -> { game |
           state <- newState,
           ball <- newBall,
           player1 <- updatePlayer delta dir1 score1 player1,
           player2 <- updatePlayer delta dir2 score2 player2
       }
 
+
+--resetGame : Game -> Game
+--resetGame game = game <~ defaultGame
 
 updateBall : Time -> Ball -> Player -> Player -> Ball
 updateBall t ({x, y, vx, vy} as ball) p1 p2 =
@@ -115,12 +140,12 @@ updatePlayer t dir points player =
   let player1 = physicsUpdate  t { player | vy <- toFloat dir * 200 }
   in
       { player1 |
-          y <- clamp (22-halfHeight) (halfHeight-22) player1.y,
+          y <- clamp (22 - halfHeight) (halfHeight - 22) player1.y,
           score <- player.score + points
       }
 
 
-physicsUpdate t ({x,y,vx,vy} as obj) =
+physicsUpdate t ({x, y, vx, vy} as obj) =
   { obj |
       x <- x + vx * t,
       y <- y + vy * t
@@ -143,7 +168,7 @@ stepV v lowerCollision upperCollision =
 -- VIEW
 
 view : (Int,Int) -> Game -> Element
-view (w,h) {state,ball,player1,player2} =
+view (w, h) {state, ball, player1, player2} =
   let scores : Element
       scores = txt (Text.height 50) (toString player1.score ++ "  " ++ toString player2.score)
   in
@@ -151,7 +176,8 @@ view (w,h) {state,ball,player1,player2} =
       collage gameWidth gameHeight
         [ rect gameWidth gameHeight
             |> filled pongGreen
-        , verticalLine gameHeight red
+        , verticalLine gameHeight
+            |> traced (dashed red)
         , oval 15 15
             |> make ball
         , rect 10 40
@@ -164,13 +190,14 @@ view (w,h) {state,ball,player1,player2} =
             |> move (0, 40 - gameHeight/2)
         ]
 
-verticalLine height color =
-    traced (dashed color) (path [(0, height), (0, -height)])
+verticalLine height =
+     path [(0, height), (0, -height)]
 
 pongGreen = rgb 60 100 60
 textGreen = rgb 160 200 160
 txt f = Text.fromString >> Text.color textGreen >> Text.monospace >> f >> Text.leftAligned
-msg = "SPACE to start, P to pause, WS and &uarr;&darr; to move"
+msg = "SPACE to start, P to pause, R to reset, WS and &uarr;&darr; to move"
+
 make obj shape =
     shape
       |> filled white
