@@ -33,7 +33,6 @@ input =
     Input <~ Keyboard.space
       ~ (keyPressed 'r')
       ~ (keyPressed 'p')
-      ~ (Signal.map .y Keyboard.wasd)
       ~ (Signal.map .y Keyboard.arrows)
       ~ delta
 
@@ -66,7 +65,6 @@ type alias Game = {
     player2: Player
 }
 
-
 player : Float -> Player
 player initialX =
   { x = initialX
@@ -81,7 +79,7 @@ defaultGame =
   { state   = Pause
   , ball    = { x = 0, y = 0, vx = 200, vy = 200 }
   , player1 = player (20 - halfWidth)
-  , player2 = player (halfWidth-20)
+  , player2 = player (halfWidth - 20)
   }
 
 
@@ -89,15 +87,14 @@ type alias Input = {
     space : Bool,
     reset : Bool,
     pause : Bool,
-    dir1 : Int,
-    dir2 : Int,
+    dir : Int,
     delta : Time
 }
 
 -- UPDATE
 
 update : Input -> Game -> Game
-update {space, reset, pause, dir1, dir2, delta} ({state, ball, player1, player2} as game) =
+update {space, reset, pause, dir, delta} ({state, ball, player1, player2} as game) =
   let score1 = if ball.x >  halfWidth then 1 else 0
       score2 = if ball.x < -halfWidth then 1 else 0
 
@@ -113,17 +110,14 @@ update {space, reset, pause, dir1, dir2, delta} ({state, ball, player1, player2}
             else updateBall delta ball player1 player2
 
   in
-      if | reset -> defaultGame
-         | otherwise -> { game |
-          state <- newState,
-          ball <- newBall,
-          player1 <- updatePlayer delta dir1 score1 player1,
-          player2 <- updatePlayer delta dir2 score2 player2
-      }
-
-
---resetGame : Game -> Game
---resetGame game = game <~ defaultGame
+      if reset
+         then defaultGame
+         else { game |
+                  state     <- newState,
+                  ball      <- newBall,
+                  player1   <- updatePlayer delta dir score1 player1,
+                  player2   <- updateComputer newBall score2 player2
+              }
 
 updateBall : Time -> Ball -> Player -> Player -> Ball
 updateBall t ({x, y, vx, vy} as ball) p1 p2 =
@@ -145,6 +139,12 @@ updatePlayer t dir points player =
           score <- player.score + points
       }
 
+updateComputer : Ball -> Int -> Player -> Player
+updateComputer ball points player =
+    { player |
+        y <- clamp (22 - halfHeight) (halfHeight - 22) ball.y,
+        score <- player.score + points
+    }
 
 physicsUpdate t ({x, y, vx, vy} as obj) =
   { obj |
@@ -152,6 +152,7 @@ physicsUpdate t ({x, y, vx, vy} as obj) =
       y <- y + vy * t
   }
 
+near : Float -> Float -> Float -> Bool
 near k c n =
     n >= k-c && n <= k+c
 
