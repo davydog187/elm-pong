@@ -9,7 +9,7 @@ Features to build:
 - [X] Mid field line
 - [X] Add the ability to pause the game during game play.
 
-- [ ] Add the ability to reset the game (besides refreshing the page!)
+- [X] Add the ability to reset the game (besides refreshing the page!)
 
 - [ ] Make ball collisions more complicated. Possiblities:
         When the ball hits the corner of a paddle, it changes direction.
