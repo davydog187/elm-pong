@@ -19,6 +19,7 @@ gameState : Signal Game
 gameState =
   Signal.foldp update defaultGame input
 
+delta : Signal Float
 delta =
   Signal.map inSeconds (fps 35)
 
