@@ -17,4 +17,4 @@ Features to build:
 
 - [ ] Add a second ball to the game.
 
-- [ ] Write a simple AI for a paddle. A simple strategy is to always put the paddle at the same y height as the ball, but this is not very fun to play against. Maybe try an AI that is not so smart to make things more interesting.
+- [X] Write a simple AI for a paddle. A simple strategy is to always put the paddle at the same y height as the ball, but this is not very fun to play against. Maybe try an AI that is not so smart to make things more interesting.
