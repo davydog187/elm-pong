@@ -22,6 +22,7 @@ gameState =
 delta =
   Signal.map inSeconds (fps 35)
 
+keyPressed : Char -> Signal Bool
 keyPressed key =
     Char.toCode key |> Keyboard.isDown
 
