@@ -39,7 +39,7 @@ input =
 -- MODEL
 
 (gameWidth, gameHeight) = (600, 400)
-(halfWidth, halfHeight) = (300, 200)
+(halfWidth, halfHeight) = (gameWidth / 2, gameHeight / 2)
 
 type State = Play | Pause
 
