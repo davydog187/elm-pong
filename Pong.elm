@@ -1,41 +1,80 @@
 -- See this document for more information on making Pong:
 -- http://elm-lang.org/blog/Pong.elm
 import Color exposing (..)
-import Graphics.Collage exposing (..)
-import Graphics.Element exposing (..)
+import Collage exposing (..)
+import Element exposing (..)
 import Keyboard
-import Signal exposing (..)
 import Text
 import Char
 import Time exposing (..)
 import Window
-import Html exposing (Html, fromElement)
+import Html exposing (..)
+import Html.App exposing (program)
+import Keyboard exposing (..)
+import Set exposing (Set)
+import Task
+import AnimationFrame
 
--- SIGNALS
+main17 =
+  program { init = (initialModel, initialSizeCmd), view = view17, update = update17, subscriptions = subscriptions }
 
-main =  map2 view Window.dimensions gameState
+initialModel =
+  { keysDown = Set.empty
+  , windowDimensions = (0,0)
+  , state   = Pause
+  , ball    = { x = 0, y = 0, vx = 200, vy = 200 }
+  , player1 = player (20 - halfWidth)
+  , player2 = player (halfWidth - 20)
+  }
 
-gameState : Signal Game
-gameState =
-  Signal.foldp update defaultGame input
+view17 : Model -> Html Msg
+view17 model =
+  Html.text <| toString <| model.keysDown
 
-delta : Signal Float
-delta =
-  Signal.map inSeconds (fps 35)
+type Msg
+  = KeyDown KeyCode
+  | KeyUp KeyCode
+  | WindowResize (Int,Int)
+  | Tick Float
+  | NoOp
 
-keyPressed : Char -> Signal Bool
-keyPressed key =
-    Char.toCode key |> Keyboard.isDown
+type alias Model =
+  { keysDown : Set KeyCode,
+    windowDimensions : (Int, Int),
+    state: State,
+    ball: Ball,
+    player1: Player,
+    player2: Player
+  }
 
+update17 msg model =
+  case msg of
+    KeyDown key ->
+      ({ model | keysDown = Set.insert key model.keysDown }, Cmd.none)
+    KeyUp key ->
+      ({ model | keysDown = Set.remove key model.keysDown }, Cmd.none)
+    Tick _ ->
+      (model, Cmd.none)
+    WindowResize _ ->
+      (model, Cmd.none)
+    NoOp ->
+      (model, Cmd.none)
 
-input : Signal Input
-input =
-  Signal.sampleOn delta <|
-    map5 Input Keyboard.space
-               (keyPressed 'r')
-               (keyPressed 'p')
-               (Signal.map .y Keyboard.arrows)
-               delta
+subscriptions _ =
+    Sub.batch
+        [ Keyboard.downs KeyDown
+        , Keyboard.ups KeyUp
+        , Window.resizes sizeToMsg
+        , AnimationFrame.diffs Tick
+        ]
+
+initialSizeCmd : Cmd Msg
+initialSizeCmd =
+  Task.perform (\_ -> NoOp) sizeToMsg Window.size
+
+sizeToMsg : Window.Size -> Msg
+sizeToMsg size =
+  WindowResize (size.width, size.height)
 
 -- MODEL
 
@@ -169,12 +208,12 @@ stepV v lowerCollision upperCollision =
 
 -- VIEW
 
-view : (Int,Int) -> Game -> Html
+view : (Int,Int) -> Game -> Html msg
 view (w, h) {state, ball, player1, player2} =
   let scores : Element
       scores = txt (Text.height 50) (toString player1.score ++ "  " ++ toString player2.score)
   in
-      fromElement <|
+      toHtml <|
       container w h middle <|
       collage gameWidth gameHeight
         [ rect gameWidth gameHeight
