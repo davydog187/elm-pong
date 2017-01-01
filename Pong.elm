@@ -9,6 +9,7 @@ import Text
 import Char
 import Time exposing (..)
 import Window
+import Html exposing (Html, fromElement)
 
 -- SIGNALS
 
@@ -168,11 +169,12 @@ stepV v lowerCollision upperCollision =
 
 -- VIEW
 
-view : (Int,Int) -> Game -> Element
+view : (Int,Int) -> Game -> Html
 view (w, h) {state, ball, player1, player2} =
   let scores : Element
       scores = txt (Text.height 50) (toString player1.score ++ "  " ++ toString player2.score)
   in
+      fromElement <|
       container w h middle <|
       collage gameWidth gameHeight
         [ rect gameWidth gameHeight
