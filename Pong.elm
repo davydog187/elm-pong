@@ -3,22 +3,21 @@
 import Color exposing (..)
 import Collage exposing (..)
 import Element exposing (..)
-import Keyboard
-import Text
-import Char
+import Text 
+import Char 
 import Time exposing (..)
-import Window
-import Html exposing (..)
+import Window 
+import Html exposing (Html)
 import Html.App exposing (program)
 import Keyboard exposing (..)
 import Set exposing (Set)
 import Task
 import AnimationFrame
 
-main17 =
-  program { init = (initialModel, initialSizeCmd), view = view17, update = update17, subscriptions = subscriptions }
+main =
+  program { init = (defaultGame, initialSizeCmd), view = view, update = update, subscriptions = subscriptions }
 
-initialModel =
+defaultGame =
   { keysDown = Set.empty
   , windowDimensions = (0,0)
   , state   = Pause
@@ -27,10 +26,6 @@ initialModel =
   , player2 = player (halfWidth - 20)
   }
 
-view17 : Model -> Html Msg
-view17 model =
-  Html.text <| toString <| model.keysDown
-
 type Msg
   = KeyDown KeyCode
   | KeyUp KeyCode
@@ -38,7 +33,7 @@ type Msg
   | Tick Float
   | NoOp
 
-type alias Model =
+type alias Game =
   { keysDown : Set KeyCode,
     windowDimensions : (Int, Int),
     state: State,
@@ -47,18 +42,31 @@ type alias Model =
     player2: Player
   }
 
-update17 msg model =
+getInput : Game -> Float -> Input
+getInput game delta 
+         = { space = Set.member (Char.toCode ' ') (game.keysDown)
+
+           , reset = Set.member (Char.toCode 'R') (game.keysDown)
+           , pause = Set.member (Char.toCode 'P') (game.keysDown)
+           , dir = if Set.member 38 (game.keysDown) then 1 -- down arrow
+                   else if Set.member 40 (game.keysDown) then -1 -- up arrow
+                   else 0
+           , delta = inSeconds delta
+           }
+
+update msg game =
   case msg of
     KeyDown key ->
-      ({ model | keysDown = Set.insert key model.keysDown }, Cmd.none)
+      ({ game | keysDown = Set.insert key game.keysDown }, Cmd.none)
     KeyUp key ->
-      ({ model | keysDown = Set.remove key model.keysDown }, Cmd.none)
-    Tick _ ->
-      (model, Cmd.none)
-    WindowResize _ ->
-      (model, Cmd.none)
+      ({ game | keysDown = Set.remove key game.keysDown }, Cmd.none)
+    Tick delta ->
+      let input = getInput game delta
+      in (updateGame input game, Cmd.none)
+    WindowResize dim ->
+      ({game | windowDimensions = dim}, Cmd.none)
     NoOp ->
-      (model, Cmd.none)
+      (game, Cmd.none)
 
 subscriptions _ =
     Sub.batch
@@ -98,13 +106,6 @@ type alias Player = {
     score: Int
 }
 
-type alias Game = {
-    state: State,
-    ball: Ball,
-    player1: Player,
-    player2: Player
-}
-
 player : Float -> Player
 player initialX =
   { x = initialX
@@ -113,15 +114,6 @@ player initialX =
   , vy = 0
   , score = 0
   }
-
-defaultGame : Game
-defaultGame =
-  { state   = Pause
-  , ball    = { x = 0, y = 0, vx = 200, vy = 200 }
-  , player1 = player (20 - halfWidth)
-  , player2 = player (halfWidth - 20)
-  }
-
 
 type alias Input = {
     space : Bool,
@@ -133,8 +125,8 @@ type alias Input = {
 
 -- UPDATE
 
-update : Input -> Game -> Game
-update {space, reset, pause, dir, delta} ({state, ball, player1, player2} as game) =
+updateGame : Input -> Game -> Game
+updateGame {space, reset, pause, dir, delta} ({state, ball, player1, player2} as game) =
   let score1 = if ball.x >  halfWidth then 1 else 0
       score2 = if ball.x < -halfWidth then 1 else 0
 
@@ -205,13 +197,13 @@ stepV v lowerCollision upperCollision =
   else if upperCollision then 0 - abs v
   else v
 
-
 -- VIEW
 
-view : (Int,Int) -> Game -> Html msg
-view (w, h) {state, ball, player1, player2} =
+view : Game -> Html Msg
+view {windowDimensions, state, ball, player1, player2} =
   let scores : Element
       scores = txt (Text.height 50) (toString player1.score ++ "  " ++ toString player2.score)
+      (w,h) = windowDimensions
   in
       toHtml <|
       container w h middle <|
