@@ -202,7 +202,7 @@ verticalLine height =
 
 pongGreen = rgb 60 100 60
 textGreen = rgb 160 200 160
-txt f = Text.fromString >> Text.color textGreen >> Text.monospace >> f >> Text.leftAligned
+txt f = Text.fromString >> Text.color textGreen >> Text.monospace >> f >> leftAligned
 pauseMessage = "SPACE to start, P to pause, R to reset, WS and &uarr;&darr; to move"
 
 make obj shape =
