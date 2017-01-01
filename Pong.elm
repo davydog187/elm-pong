@@ -26,12 +26,11 @@ defaultGame =
   , player2 = player (halfWidth - 20)
   }
 
-type Msg
-  = KeyDown KeyCode
-  | KeyUp KeyCode
-  | WindowResize (Int,Int)
-  | Tick Float
-  | NoOp
+type Msg = KeyDown KeyCode
+         | KeyUp KeyCode
+         | WindowResize (Int,Int)
+         | Tick Float
+         | NoOp
 
 type alias Game =
   { keysDown : Set KeyCode,
