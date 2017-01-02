@@ -19,6 +19,13 @@ main = program { init = (initialGame, initialSizeCmd)
                , subscriptions = subscriptions 
                }
 
+-- KeyDown/KeyUp/keysDown technique taken from this answer : 
+--     http://stackoverflow.com/a/39127092/509928
+-- 
+-- to this question : 
+--     http://stackoverflow.com/questions/39125989/keyboard-combinations-in-elm-0-17-and-later
+-- 
+
 type Msg = KeyDown KeyCode
          | KeyUp KeyCode
          | WindowResize (Int,Int)
@@ -57,6 +64,12 @@ subscriptions _ =
         , Window.resizes sizeToMsg
         , AnimationFrame.diffs Tick
         ]
+
+-- initialSizeCmd/sizeToMsg technique taken from this answer : 
+--     https://www.reddit.com/r/elm/comments/4jfo32/getting_the_initial_window_dimensions/d369kw1/
+--
+-- to this question : 
+--     https://www.reddit.com/r/elm/comments/4jfo32/getting_the_initial_window_dimensions/
 
 initialSizeCmd : Cmd Msg
 initialSizeCmd =
