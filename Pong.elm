@@ -7,8 +7,7 @@ import Text
 import Char 
 import Time exposing (..)
 import Window 
-import Html exposing (Html)
-import Html.App exposing (program)
+import Html exposing (..)
 import Keyboard exposing (..)
 import Set exposing (Set)
 import Task
@@ -62,7 +61,7 @@ subscriptions _ =
 
 initialSizeCmd : Cmd Msg
 initialSizeCmd =
-  Task.perform (\_ -> NoOp) sizeToMsg Window.size
+  Task.perform sizeToMsg (Window.size)
 
 sizeToMsg : Window.Size -> Msg
 sizeToMsg size =
@@ -159,7 +158,7 @@ updateBall t ({x, y, vx, vy} as ball) p1 p2 =
     then { ball | x = 0, y = 0 }
     else physicsUpdate t
             { ball |
-                vx = stepV vx (ball `within` p1) (ball `within` p2),
+                vx = stepV vx (within ball p1) (within ball p2),
                 vy = stepV vy (y < 7-halfHeight) (y > halfHeight-7)
             }
 
