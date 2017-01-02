@@ -14,8 +14,11 @@ import Set exposing (Set)
 import Task
 import AnimationFrame
 
-main =
-  program { init = (defaultGame, initialSizeCmd), view = view, update = update, subscriptions = subscriptions }
+main = program { init = (defaultGame, initialSizeCmd)
+               , view = view
+               , update = update
+               , subscriptions = subscriptions 
+               }
 
 type Msg = KeyDown KeyCode
          | KeyUp KeyCode
