@@ -17,29 +17,11 @@ import AnimationFrame
 main =
   program { init = (defaultGame, initialSizeCmd), view = view, update = update, subscriptions = subscriptions }
 
-defaultGame =
-  { keysDown = Set.empty
-  , windowDimensions = (0,0)
-  , state   = Pause
-  , ball    = { x = 0, y = 0, vx = 200, vy = 200 }
-  , player1 = player (20 - halfWidth)
-  , player2 = player (halfWidth - 20)
-  }
-
 type Msg = KeyDown KeyCode
          | KeyUp KeyCode
          | WindowResize (Int,Int)
          | Tick Float
          | NoOp
-
-type alias Game =
-  { keysDown : Set KeyCode,
-    windowDimensions : (Int, Int),
-    state: State,
-    ball: Ball,
-    player1: Player,
-    player2: Player
-  }
 
 getInput : Game -> Float -> Input
 getInput game delta 
@@ -105,6 +87,15 @@ type alias Player = {
     score: Int
 }
 
+type alias Game =
+  { keysDown : Set KeyCode,
+    windowDimensions : (Int, Int),
+    state: State,
+    ball: Ball,
+    player1: Player,
+    player2: Player
+  }
+
 player : Float -> Player
 player initialX =
   { x = initialX
@@ -112,6 +103,15 @@ player initialX =
   , vx = 0
   , vy = 0
   , score = 0
+  }
+
+defaultGame =
+  { keysDown = Set.empty
+  , windowDimensions = (0,0)
+  , state   = Pause
+  , ball    = { x = 0, y = 0, vx = 200, vy = 200 }
+  , player1 = player (20 - halfWidth)
+  , player2 = player (halfWidth - 20)
   }
 
 type alias Input = {
