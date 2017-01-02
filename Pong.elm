@@ -28,7 +28,6 @@ type Msg = KeyDown KeyCode
 getInput : Game -> Float -> Input
 getInput game delta 
          = { space = Set.member (Char.toCode ' ') (game.keysDown)
-
            , reset = Set.member (Char.toCode 'R') (game.keysDown)
            , pause = Set.member (Char.toCode 'P') (game.keysDown)
            , dir = if Set.member 38 (game.keysDown) then 1 -- down arrow
