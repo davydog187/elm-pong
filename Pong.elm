@@ -13,7 +13,7 @@ import Set exposing (Set)
 import Task
 import AnimationFrame
 
-main = program { init = (defaultGame, initialSizeCmd)
+main = program { init = (initialGame, initialSizeCmd)
                , view = view
                , update = update
                , subscriptions = subscriptions 
@@ -106,13 +106,19 @@ player initialX =
   , score = 0
   }
 
-defaultGame =
+initialBall = { x = 0, y = 0, vx = 200, vy = 200 }
+
+initialPlayer1 = player (20 - halfWidth)
+
+initialPlayer2 = player (halfWidth - 20)
+
+initialGame =
   { keysDown = Set.empty
   , windowDimensions = (0,0)
   , state   = Pause
-  , ball    = { x = 0, y = 0, vx = 200, vy = 200 }
-  , player1 = player (20 - halfWidth)
-  , player2 = player (halfWidth - 20)
+  , ball    = initialBall
+  , player1 = initialPlayer1
+  , player2 = initialPlayer2
   }
 
 type alias Input = {
@@ -143,12 +149,16 @@ updateGame {space, reset, pause, dir, delta} ({state, ball, player1, player2} as
 
   in
       if reset
-         then defaultGame
-         else { game |
-                  state     = newState,
-                  ball      = newBall,
-                  player1   = updatePlayer delta dir score1 player1,
-                  player2   = updateComputer newBall score2 player2
+         then { game | state   = Pause
+                     , ball    = initialBall
+                     , player1 = initialPlayer1 
+                     , player2 = initialPlayer2
+              }
+
+         else { game | state   = newState
+                     , ball    = newBall
+                     , player1 = updatePlayer delta dir score1 player1
+                     , player2 = updateComputer newBall score2 player2
               }
 
 updateBall : Time -> Ball -> Player -> Player -> Ball
