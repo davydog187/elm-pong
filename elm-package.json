@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
-    "summary": "helpful summary of your project, less than 80 characters",
-    "repository": "https://github.com/user/project.git",
+    "summary": "Game of pong, based on Evan's blog post. Enhanced with some new features",
+    "repository": "https://github.com/davydog187/elm-pong.git",
     "license": "BSD3",
     "source-directories": [
         "."
