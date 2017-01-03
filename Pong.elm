@@ -1,41 +1,83 @@
 -- See this document for more information on making Pong:
 -- http://elm-lang.org/blog/Pong.elm
 import Color exposing (..)
-import Graphics.Collage exposing (..)
-import Graphics.Element exposing (..)
-import Keyboard
-import Signal
-import Signal exposing (..)
-import Text
-import Char
+import Collage exposing (..)
+import Element exposing (..)
+import Text 
+import Char 
 import Time exposing (..)
-import Window
+import Window 
+import Html exposing (..)
+import Keyboard exposing (..)
+import Set exposing (Set)
+import Task
+import AnimationFrame
 
--- SIGNALS
+main = program { init = (initialGame, initialSizeCmd)
+               , view = view
+               , update = update
+               , subscriptions = subscriptions 
+               }
 
-main = view <~ Window.dimensions ~ gameState
+-- KeyDown/KeyUp/keysDown technique taken from this answer : 
+--     http://stackoverflow.com/a/39127092/509928
+-- 
+-- to this question : 
+--     http://stackoverflow.com/questions/39125989/keyboard-combinations-in-elm-0-17-and-later
+-- 
 
-gameState : Signal Game
-gameState =
-  Signal.foldp update defaultGame input
+type Msg = KeyDown KeyCode
+         | KeyUp KeyCode
+         | WindowResize (Int,Int)
+         | Tick Float
+         | NoOp
 
-delta : Signal Float
-delta =
-  Signal.map inSeconds (fps 35)
+getInput : Game -> Float -> Input
+getInput game delta 
+         = { space = Set.member (Char.toCode ' ') (game.keysDown)
+           , reset = Set.member (Char.toCode 'R') (game.keysDown)
+           , pause = Set.member (Char.toCode 'P') (game.keysDown)
+           , dir = if Set.member 38 (game.keysDown) then 1 -- down arrow
+                   else if Set.member 40 (game.keysDown) then -1 -- up arrow
+                   else 0
+           , delta = inSeconds delta
+           }
 
-keyPressed : Char -> Signal Bool
-keyPressed key =
-    Char.toCode key |> Keyboard.isDown
+update msg game =
+  case msg of
+    KeyDown key ->
+      ({ game | keysDown = Set.insert key game.keysDown }, Cmd.none)
+    KeyUp key ->
+      ({ game | keysDown = Set.remove key game.keysDown }, Cmd.none)
+    Tick delta ->
+      let input = getInput game delta
+      in (updateGame input game, Cmd.none)
+    WindowResize dim ->
+      ({game | windowDimensions = dim}, Cmd.none)
+    NoOp ->
+      (game, Cmd.none)
 
+subscriptions _ =
+    Sub.batch
+        [ Keyboard.downs KeyDown
+        , Keyboard.ups KeyUp
+        , Window.resizes sizeToMsg
+        , AnimationFrame.diffs Tick
+        ]
 
-input : Signal Input
-input =
-  Signal.sampleOn delta <|
-    Input <~ Keyboard.space
-      ~ (keyPressed 'r')
-      ~ (keyPressed 'p')
-      ~ (Signal.map .y Keyboard.arrows)
-      ~ delta
+-- initialSizeCmd/sizeToMsg technique taken from this answer : 
+--     https://www.reddit.com/r/elm/comments/4jfo32/getting_the_initial_window_dimensions/d369kw1/
+--
+-- to this question : 
+--     https://www.reddit.com/r/elm/comments/4jfo32/getting_the_initial_window_dimensions/
+
+initialSizeCmd : Cmd Msg
+initialSizeCmd =
+  Task.perform sizeToMsg (Window.size)
+
+sizeToMsg : Window.Size -> Msg
+sizeToMsg size =
+  WindowResize (size.width, size.height)
 
 -- MODEL
 
@@ -59,12 +101,14 @@ type alias Player = {
     score: Int
 }
 
-type alias Game = {
+type alias Game =
+  { keysDown : Set KeyCode,
+    windowDimensions : (Int, Int),
     state: State,
     ball: Ball,
     player1: Player,
     player2: Player
-}
+  }
 
 player : Float -> Player
 player initialX =
@@ -75,14 +119,20 @@ player initialX =
   , score = 0
   }
 
-defaultGame : Game
-defaultGame =
-  { state   = Pause
-  , ball    = { x = 0, y = 0, vx = 200, vy = 200 }
-  , player1 = player (20 - halfWidth)
-  , player2 = player (halfWidth - 20)
-  }
+initialBall = { x = 0, y = 0, vx = 200, vy = 200 }
 
+initialPlayer1 = player (20 - halfWidth)
+
+initialPlayer2 = player (halfWidth - 20)
+
+initialGame =
+  { keysDown = Set.empty
+  , windowDimensions = (0,0)
+  , state   = Pause
+  , ball    = initialBall
+  , player1 = initialPlayer1
+  , player2 = initialPlayer2
+  }
 
 type alias Input = {
     space : Bool,
@@ -94,16 +144,16 @@ type alias Input = {
 
 -- UPDATE
 
-update : Input -> Game -> Game
-update {space, reset, pause, dir, delta} ({state, ball, player1, player2} as game) =
+updateGame : Input -> Game -> Game
+updateGame {space, reset, pause, dir, delta} ({state, ball, player1, player2} as game) =
   let score1 = if ball.x >  halfWidth then 1 else 0
       score2 = if ball.x < -halfWidth then 1 else 0
 
       newState =
-        if  | space            -> Play
-            | pause            -> Pause
-            | score1 /= score2 -> Pause
-            | otherwise        -> state
+        if  space then Play 
+        else if (pause) then Pause 
+        else if (score1 /= score2) then Pause 
+        else state
 
       newBall =
         if state == Pause
@@ -112,45 +162,49 @@ update {space, reset, pause, dir, delta} ({state, ball, player1, player2} as gam
 
   in
       if reset
-         then defaultGame
-         else { game |
-                  state     <- newState,
-                  ball      <- newBall,
-                  player1   <- updatePlayer delta dir score1 player1,
-                  player2   <- updateComputer newBall score2 player2
+         then { game | state   = Pause
+                     , ball    = initialBall
+                     , player1 = initialPlayer1 
+                     , player2 = initialPlayer2
+              }
+
+         else { game | state   = newState
+                     , ball    = newBall
+                     , player1 = updatePlayer delta dir score1 player1
+                     , player2 = updateComputer newBall score2 player2
               }
 
 updateBall : Time -> Ball -> Player -> Player -> Ball
 updateBall t ({x, y, vx, vy} as ball) p1 p2 =
   if not (ball.x |> near 0 halfWidth)
-    then { ball | x <- 0, y <- 0 }
+    then { ball | x = 0, y = 0 }
     else physicsUpdate t
             { ball |
-                vx <- stepV vx (ball `within` p1) (ball `within` p2),
-                vy <- stepV vy (y < 7-halfHeight) (y > halfHeight-7)
+                vx = stepV vx (within ball p1) (within ball p2),
+                vy = stepV vy (y < 7-halfHeight) (y > halfHeight-7)
             }
 
 
 updatePlayer : Time -> Int -> Int -> Player -> Player
 updatePlayer t dir points player =
-  let player1 = physicsUpdate  t { player | vy <- toFloat dir * 200 }
+  let player1 = physicsUpdate  t { player | vy = toFloat dir * 200 }
   in
       { player1 |
-          y <- clamp (22 - halfHeight) (halfHeight - 22) player1.y,
-          score <- player.score + points
+          y = clamp (22 - halfHeight) (halfHeight - 22) player1.y,
+          score = player.score + points
       }
 
 updateComputer : Ball -> Int -> Player -> Player
 updateComputer ball points player =
     { player |
-        y <- clamp (22 - halfHeight) (halfHeight - 22) ball.y,
-        score <- player.score + points
+        y = clamp (22 - halfHeight) (halfHeight - 22) ball.y,
+        score = player.score + points
     }
 
 physicsUpdate t ({x, y, vx, vy} as obj) =
   { obj |
-      x <- x + vx * t,
-      y <- y + vy * t
+      x = x + vx * t,
+      y = y + vy * t
   }
 
 near : Float -> Float -> Float -> Bool
@@ -162,18 +216,19 @@ within ball paddle =
 
 
 stepV v lowerCollision upperCollision =
-  if | lowerCollision -> abs v
-     | upperCollision -> 0 - abs v
-     | otherwise      -> v
-
+  if lowerCollision then abs v
+  else if upperCollision then 0 - abs v
+  else v
 
 -- VIEW
 
-view : (Int,Int) -> Game -> Element
-view (w, h) {state, ball, player1, player2} =
+view : Game -> Html Msg
+view {windowDimensions, state, ball, player1, player2} =
   let scores : Element
       scores = txt (Text.height 50) (toString player1.score ++ "  " ++ toString player2.score)
+      (w,h) = windowDimensions
   in
+      toHtml <|
       container w h middle <|
       collage gameWidth gameHeight
         [ rect gameWidth gameHeight
@@ -202,7 +257,7 @@ verticalLine height =
 
 pongGreen = rgb 60 100 60
 textGreen = rgb 160 200 160
-txt f = Text.fromString >> Text.color textGreen >> Text.monospace >> f >> Text.leftAligned
+txt f = Text.fromString >> Text.color textGreen >> Text.monospace >> f >> leftAligned
 pauseMessage = "SPACE to start, P to pause, R to reset, WS and &uarr;&darr; to move"
 
 make obj shape =
